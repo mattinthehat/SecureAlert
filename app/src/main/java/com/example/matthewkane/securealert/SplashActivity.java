@@ -26,7 +26,7 @@ public class SplashActivity extends ActionBarActivity{
     int REQUEST_ENABLE_BT;
     ArrayList<String> items = new ArrayList<String>();
     ArrayAdapter<String> mBTList;
-    //master test change
+    //matt test change
     //called when 'find devices' button is clicked
     public void findDevices(View v){
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
