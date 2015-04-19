@@ -22,6 +22,8 @@ import java.util.ArrayList;
 
 public class SplashActivity extends ActionBarActivity{
 
+    //Ryan test comment
+
     //local variables
     int REQUEST_ENABLE_BT;
     ArrayList<String> items = new ArrayList<String>();
