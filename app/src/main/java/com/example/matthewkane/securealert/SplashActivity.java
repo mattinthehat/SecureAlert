@@ -7,6 +7,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v7.app.ActionBarActivity;
@@ -73,7 +76,7 @@ public class SplashActivity extends ActionBarActivity {
             String action = intent.getAction();
             // When discovery finds a device
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                Log.d("BTDEVICE", "DEVICE FOUND");
+                Log.d("BTCONNECTA", "DEVICE FOUND");
                 // Get the BluetoothDevice object from the Intent
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
@@ -87,9 +90,9 @@ public class SplashActivity extends ActionBarActivity {
                 Parcelable[] uuidExtra = null;
                 if(intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID) != null) {
                     uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
-                    Log.d("BTCONNECT", "UUID found for device " + selectedDevice.getName());
+                    Log.d("BTCONNECTA", "UUID found for device " + selectedDevice.getName());
                 }else{
-                    Log.d("BTCONNECT", "Null UUID found for device " + selectedDevice.getName());
+                    Log.d("BTCONNECTA", "Null UUID found for device " + selectedDevice.getName());
                 }
                 if(uuidExtra != null) {
                     for (int i = 0; i < uuidExtra.length; i++) {
@@ -98,6 +101,17 @@ public class SplashActivity extends ActionBarActivity {
                         }
                     }
                 }
+            }else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)){
+                Log.d("BTCONNECTA", "Device Disconnected");
+                connected = false;
+                try {
+                    Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+                    r.play();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
             }
         }
     };
@@ -140,15 +154,16 @@ public class SplashActivity extends ActionBarActivity {
                 IntentFilter uuidFilter = new IntentFilter(BluetoothDevice.ACTION_UUID);
                 registerReceiver(receiver, uuidFilter);
                 recRegTypeDevice = false;
-                Log.d("BTCONNECT", "Attempting to fetch UUIDS...");
+                Log.d("BTCONNECTA", "Attempting to fetch UUIDS...");
                 if(selectedDevice.fetchUuidsWithSdp() == true){
-                    Log.d("BTCONNECT", "Connection initiation started...");
+                    Log.d("BTCONNECTA", "Connection initiation started...");
                 }
             }
         });
 
         // Register the BroadcastReceiver
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+
         registerReceiver(receiver, filter); // Don't forget to unregister during onDestroy
         recRegTypeDevice = true;
     }
@@ -179,14 +194,31 @@ public class SplashActivity extends ActionBarActivity {
     public void connectDevice(View v){
         //try to connect with all the found uuids for the given device
         for (int i = 0; i < targetUUIDs.size(); i++) {
-            Log.d("BTCONNECT", "Trying to connect with UUID: " + targetUUIDs.get(i).toString());
+            Log.d("BTCONNECTA", "Trying to connect with UUID: " + targetUUIDs.get(i).toString());
             myUUID = targetUUIDs.get(i);
             ConnectThread tryThread = new ConnectThread(selectedDevice);
-            tryThread.run();
+            tryThread.start();
+            //wait for connect thread to complete so we know if we are connected
+            try {
+                tryThread.join();
+            }catch (InterruptedException e){
+                e.printStackTrace();
+            }
             if(connected){
+                monitorConnection();
                 break;
             }
         }
+    }
+
+    public boolean monitorConnection(){
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        unregisterReceiver(receiver);
+        registerReceiver(receiver, filter);
+
+        return true;
+
+
     }
 
     private class ConnectThread extends Thread {
@@ -205,7 +237,7 @@ public class SplashActivity extends ActionBarActivity {
                 tmp = device.createRfcommSocketToServiceRecord(myUUID);
             } catch (IOException e) { }
             mmSocket = tmp;
-            Log.d("BTCONNECT", "SOCKET CREATED");
+            Log.d("BTCONNECTA", "SOCKET CREATED");
         }
 
         public void run() {
@@ -226,10 +258,10 @@ public class SplashActivity extends ActionBarActivity {
                 }
                 return;
             }
-            Log.d("BTCONNECT", "CONNECTION ESTABLISHED");
+            Log.d("BTCONNECTA", "CONNECTION ESTABLISHED");
             connected = true;
             // Do work to manage the connection (in a separate thread)
-            // manageConnectedSocket(mmSocket);
+
         }
         // Will cancel an in-progress connection, and close the socket
         public void cancel() {
