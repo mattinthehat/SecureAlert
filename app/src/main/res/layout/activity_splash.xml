@@ -12,7 +12,6 @@
         android:text="Find Nearby Devices"
         android:id="@+id/findButton"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="95dp"
         android:clickable="true"
         android:onClick="findDevices"/>
 
@@ -20,9 +19,22 @@
         android:id="@+id/BTListView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/findButton"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginTop="49dp" />
+        android:layout_below="@+id/findButton"
+        android:layout_above="@+id/connectButton"
+        android:clickable="true"
+        />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Connect"
+        android:id="@+id/connectButton"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:visibility="visible"
+        android:enabled="false"
+        android:onClick="connectDevice" />
 
 </RelativeLayout>
