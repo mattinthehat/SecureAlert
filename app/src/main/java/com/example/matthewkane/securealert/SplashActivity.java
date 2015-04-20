@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.os.Vibrator;
@@ -137,6 +138,8 @@ public class SplashActivity extends ActionBarActivity {
                     Toast.makeText(getApplicationContext(), "Disconnected from " + selectedDevice.getName(), Toast.LENGTH_LONG).show();
                     v.vibrate(500);
                     r.play();
+                    new sendEmail().execute();
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -192,6 +195,8 @@ public class SplashActivity extends ActionBarActivity {
 
         registerReceiver(receiver, filter); // Don't forget to unregister during onDestroy
         recRegTypeDevice = true;
+
+
 
     }
 
@@ -303,6 +308,38 @@ public class SplashActivity extends ActionBarActivity {
                 mmSocket.close();
             } catch (IOException e) { }
         }
+    }
+
+    private class sendEmail extends AsyncTask<String, Void, Void> {
+
+        protected void onPreExecute(){
+            return;
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+            try {
+                GMailSender sender = new GMailSender("securealert@gmail.com", "Alongpassword101");
+                sender.sendMail("Secure Alert Disconnected",
+                        "This email is being sent to alert you that your bluetooth connection has disconnected.",
+                        "securealert@gmail.com",
+                        "tedrow.15@osu.edu");
+            } catch (Exception e) {
+                Log.e("SendMail", e.getMessage(), e);
+            }
+            return null;
+        }
+
+
+
+        protected Void onProgressUpdate(){
+            return null;
+        }
+
+        protected Void onPostExecute(){
+            return null;
+        }
+
     }
 
 }
