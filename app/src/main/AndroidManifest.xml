@@ -19,9 +19,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service
-            android:name=".RSSPullService"
-            android:exported="false"/>
+        <service android:name=".BTDisconnectService" />
     </application>
 
 </manifest>

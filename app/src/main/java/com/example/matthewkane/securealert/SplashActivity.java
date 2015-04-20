@@ -1,20 +1,18 @@
 package com.example.matthewkane.securealert;
 
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.os.Vibrator;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -25,7 +23,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -111,6 +108,7 @@ public class SplashActivity extends ActionBarActivity {
 
                 //try to connect with all the found uuids for the given device
                 if(!targetUUIDs.isEmpty() && !connected) {
+                    String alertMessage;
                     for (int i = 0; i < targetUUIDs.size(); i++) {
                         Log.d("BTCONNECTA", "Trying to connect with UUID: " + targetUUIDs.get(i).toString());
                         myUUID = targetUUIDs.get(i);
@@ -123,30 +121,30 @@ public class SplashActivity extends ActionBarActivity {
                             e.printStackTrace();
                         }
                         if (connected) {
-                            dialog.dismiss();
-                            monitorConnection();
+                            Intent disconnectIntent = new Intent(getApplicationContext(), BTDisconnectService.class);
+                            disconnectIntent.putExtra("DeviceName", selectedDevice.getName());
+                            getApplicationContext().startService(disconnectIntent);
                             break;
                         }
                     }
+                    dialog.dismiss();
+                    if(connected) {
+                        alertMessage = "Connection Successful!";
+                    }else{
+                        alertMessage = "Connection NOT established.\nTry again.";
+                    }
+                    AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                    builder.setMessage(alertMessage)
+                            .setCancelable(false)
+                            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    AlertDialog alert = builder.create();
+                    alert.show();
                 }
-            }else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)){
-                Log.d("BTCONNECTA", "Device Disconnected");
-                connected = false;
-                try {
-                    Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                    Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
-                    Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                    Toast.makeText(getApplicationContext(), "Disconnected from " + selectedDevice.getName(), Toast.LENGTH_LONG).show();
-                    v.vibrate(500);
-                    r.play();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-            }//else if(BluetoothDevice.EXTRA_RSSI.equals(action)){
-
-
-            //}
+            }
         }
     };
 
@@ -239,21 +237,6 @@ public class SplashActivity extends ActionBarActivity {
         }
 
         dialog = ProgressDialog.show(this, "Loading", "Connecting to "+ selectedDevice.getName() +", please wait...", true);
-
-
-
-
-
-
-    }
-
-    public boolean monitorConnection(){
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        unregisterReceiver(receiver);
-        registerReceiver(receiver, filter);
-
-        return true;
-
 
     }
 
