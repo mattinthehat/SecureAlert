@@ -4,3 +4,9 @@
 /.idea/libraries
 .DS_Store
 /build
+
+app/src/main/AndroidManifest.xml
+
+app/src/main/AndroidManifest.xml
+
+app/src/main/java/com/example/matthewkane/securealert/SplashActivity.java

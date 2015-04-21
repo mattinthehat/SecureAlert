@@ -35,6 +35,7 @@ public class BTDisconnectService extends Service {
                     Toast.makeText(getApplicationContext(), "Disconnected from " + DeviceName, Toast.LENGTH_LONG).show();
                     v.vibrate(500);
                     r.play();
+                    new sendEmail().execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
