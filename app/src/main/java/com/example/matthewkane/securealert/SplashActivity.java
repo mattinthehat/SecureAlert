@@ -1,5 +1,7 @@
 package com.example.matthewkane.securealert;
 
+
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -10,8 +12,10 @@ import android.content.IntentFilter;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.os.Vibrator;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -22,6 +26,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,6 +37,7 @@ public class SplashActivity extends ActionBarActivity {
     //Ryan test comment
 
     //local variables
+    ProgressDialog dialog;
     boolean recRegTypeDevice;
     BluetoothAdapter bluetoothAdapter;
     boolean connected = false;
@@ -48,6 +54,7 @@ public class SplashActivity extends ActionBarActivity {
 
     //called when 'find devices' button is clicked
     public void findDevices(View v){
+        //notify user to wait for discovery to finish
         //reregister receiver if necessary
         if(!recRegTypeDevice){
             unregisterReceiver(receiver);
@@ -76,9 +83,9 @@ public class SplashActivity extends ActionBarActivity {
             String action = intent.getAction();
             // When discovery finds a device
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                Log.d("BTCONNECTA", "DEVICE FOUND");
                 // Get the BluetoothDevice object from the Intent
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                Log.d("BTCONNECTA", "DEVICE FOUND: " + device.getName());
 
                 // Add the name and address to an array adapter to show in a ListView
                 if(!devices.contains(device)) {
@@ -88,6 +95,7 @@ public class SplashActivity extends ActionBarActivity {
             }else if (BluetoothDevice.ACTION_UUID.equals(action)){
                 //only take non-null uuid sets
                 Parcelable[] uuidExtra = null;
+
                 if(intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID) != null) {
                     uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
                     Log.d("BTCONNECTA", "UUID found for device " + selectedDevice.getName());
@@ -101,18 +109,47 @@ public class SplashActivity extends ActionBarActivity {
                         }
                     }
                 }
+
+                //try to connect with all the found uuids for the given device
+                if(!targetUUIDs.isEmpty() && !connected) {
+                    for (int i = 0; i < targetUUIDs.size(); i++) {
+                        Log.d("BTCONNECTA", "Trying to connect with UUID: " + targetUUIDs.get(i).toString());
+                        myUUID = targetUUIDs.get(i);
+                        ConnectThread tryThread = new ConnectThread(selectedDevice);
+                        tryThread.start();
+                        //wait for connect thread to complete so we know if we are connected
+                        try {
+                            tryThread.join();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        if (connected) {
+                            dialog.dismiss();
+                            monitorConnection();
+                            break;
+                        }
+                    }
+                }
             }else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)){
                 Log.d("BTCONNECTA", "Device Disconnected");
                 connected = false;
                 try {
                     Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                     Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+                    Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                    Toast.makeText(getApplicationContext(), "Disconnected from " + selectedDevice.getName(), Toast.LENGTH_LONG).show();
+                    v.vibrate(500);
                     r.play();
+                    new sendEmail().execute();
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
 
-            }
+            }//else if(BluetoothDevice.EXTRA_RSSI.equals(action)){
+
+
+            //}
         }
     };
 
@@ -146,18 +183,12 @@ public class SplashActivity extends ActionBarActivity {
             @Override
             public void onItemClick(android.widget.AdapterView<?> parent, View view, int position, long id) {
                 //enable connectButton
+                selectedDevice = devices.get(position);
                 connectButton.setEnabled(true);
                 //select device; be prepared for connect
                 //Toast.makeText(getApplicationContext(), devices.get(position).getName(), Toast.LENGTH_SHORT).show();
-                selectedDevice = devices.get(position);
-                unregisterReceiver(receiver);
-                IntentFilter uuidFilter = new IntentFilter(BluetoothDevice.ACTION_UUID);
-                registerReceiver(receiver, uuidFilter);
-                recRegTypeDevice = false;
-                Log.d("BTCONNECTA", "Attempting to fetch UUIDS...");
-                if(selectedDevice.fetchUuidsWithSdp() == true){
-                    Log.d("BTCONNECTA", "Connection initiation started...");
-                }
+
+
             }
         });
 
@@ -166,8 +197,17 @@ public class SplashActivity extends ActionBarActivity {
 
         registerReceiver(receiver, filter); // Don't forget to unregister during onDestroy
         recRegTypeDevice = true;
+
+
+
     }
 
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        unregisterReceiver(receiver);
+
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -191,24 +231,25 @@ public class SplashActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
     public void connectDevice(View v){
-        //try to connect with all the found uuids for the given device
-        for (int i = 0; i < targetUUIDs.size(); i++) {
-            Log.d("BTCONNECTA", "Trying to connect with UUID: " + targetUUIDs.get(i).toString());
-            myUUID = targetUUIDs.get(i);
-            ConnectThread tryThread = new ConnectThread(selectedDevice);
-            tryThread.start();
-            //wait for connect thread to complete so we know if we are connected
-            try {
-                tryThread.join();
-            }catch (InterruptedException e){
-                e.printStackTrace();
-            }
-            if(connected){
-                monitorConnection();
-                break;
-            }
+        bluetoothAdapter.cancelDiscovery();
+        unregisterReceiver(receiver);
+        IntentFilter uuidFilter = new IntentFilter(BluetoothDevice.ACTION_UUID);
+        registerReceiver(receiver, uuidFilter);
+        recRegTypeDevice = false;
+        Log.d("BTCONNECTA", "Attempting to fetch UUIDS...");
+        if(selectedDevice.fetchUuidsWithSdp() == true){
+            Log.d("BTCONNECTA", "Connection initiation started...");
         }
+
+        dialog = ProgressDialog.show(this, "Loading", "Connecting to "+ selectedDevice.getName() +", please wait...", true);
+
+
+
+
+
+
     }
 
     public boolean monitorConnection(){
@@ -269,6 +310,38 @@ public class SplashActivity extends ActionBarActivity {
                 mmSocket.close();
             } catch (IOException e) { }
         }
+    }
+
+    private class sendEmail extends AsyncTask<String, Void, Void> {
+
+        protected void onPreExecute(){
+            return;
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+            try {
+                GMailSender sender = new GMailSender("securealert@gmail.com", "Alongpassword101");
+                sender.sendMail("Secure Alert Disconnected",
+                        "This email is being sent to alert you that your bluetooth connection has disconnected.",
+                        "securealert@gmail.com",
+                        "tedrow.15@osu.edu");
+            } catch (Exception e) {
+                Log.e("SendMail", e.getMessage(), e);
+            }
+            return null;
+        }
+
+
+
+        protected Void onProgressUpdate(){
+            return null;
+        }
+
+        protected Void onPostExecute(){
+            return null;
+        }
+
     }
 
 }
