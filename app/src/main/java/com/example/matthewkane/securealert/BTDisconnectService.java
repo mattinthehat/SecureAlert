@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Vibrator;
 import android.util.Log;
@@ -23,12 +24,17 @@ public class BTDisconnectService extends Service {
 
     private String DeviceName;
 
+    final static String DISCONNECT = "DISCONNECT";
+
     private final BroadcastReceiver mDisconnectReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
                 Log.d(BTSERVICE, "Cancelled");
                 try {
+                    Intent disconnectIntent = new Intent();
+                    disconnectIntent.setAction("DISCONNECT");
+                    sendBroadcast(disconnectIntent);
                     Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                     Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
                     Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
@@ -70,5 +76,37 @@ public class BTDisconnectService extends Service {
         Log.d(BTSERVICE, "Service: onDestroy");
         unregisterReceiver(mDisconnectReceiver);
         super.onDestroy();
+    }
+
+    private class sendEmail extends AsyncTask<String, Void, Void> {
+
+        protected void onPreExecute(){
+            return;
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+            try {
+                GMailSender sender = new GMailSender("securealert@gmail.com", "Alongpassword101");
+                sender.sendMail("Secure Alert Disconnected",
+                        "This email is being sent to alert you that your bluetooth connection has disconnected.",
+                        "securealert@gmail.com",
+                        "chu.300@osu.edu");
+            } catch (Exception e) {
+                Log.e("SendMail", e.getMessage(), e);
+            }
+            return null;
+        }
+
+
+
+        protected Void onProgressUpdate(){
+            return null;
+        }
+
+        protected Void onPostExecute(){
+            return null;
+        }
+
     }
 }

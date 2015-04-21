@@ -30,8 +30,6 @@ import java.util.UUID;
 
 public class SplashActivity extends ActionBarActivity {
 
-    //Ryan test comment
-
     //local variables
     ProgressDialog dialog;
     boolean recRegTypeDevice;
@@ -144,6 +142,9 @@ public class SplashActivity extends ActionBarActivity {
                     AlertDialog alert = builder.create();
                     alert.show();
                 }
+            } else if (action.equals(BTDisconnectService.DISCONNECT)){
+                connected = false;
+                connectButton.setEnabled(true);
             }
         }
     };
@@ -229,13 +230,14 @@ public class SplashActivity extends ActionBarActivity {
         bluetoothAdapter.cancelDiscovery();
         unregisterReceiver(receiver);
         IntentFilter uuidFilter = new IntentFilter(BluetoothDevice.ACTION_UUID);
+        uuidFilter.addAction(BTDisconnectService.DISCONNECT);
         registerReceiver(receiver, uuidFilter);
         recRegTypeDevice = false;
         Log.d("BTCONNECTA", "Attempting to fetch UUIDS...");
         if(selectedDevice.fetchUuidsWithSdp() == true){
             Log.d("BTCONNECTA", "Connection initiation started...");
         }
-
+        connectButton.setEnabled(false);
         dialog = ProgressDialog.show(this, "Loading", "Connecting to "+ selectedDevice.getName() +", please wait...", true);
 
     }
