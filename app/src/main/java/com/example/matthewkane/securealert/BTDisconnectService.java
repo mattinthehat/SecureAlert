@@ -9,7 +9,6 @@ import android.content.IntentFilter;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Vibrator;
 import android.util.Log;
@@ -41,7 +40,6 @@ public class BTDisconnectService extends Service {
                     Toast.makeText(getApplicationContext(), "Disconnected from " + DeviceName, Toast.LENGTH_LONG).show();
                     v.vibrate(500);
                     r.play();
-                    new sendEmail().execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -76,37 +74,5 @@ public class BTDisconnectService extends Service {
         Log.d(BTSERVICE, "Service: onDestroy");
         unregisterReceiver(mDisconnectReceiver);
         super.onDestroy();
-    }
-
-    private class sendEmail extends AsyncTask<String, Void, Void> {
-
-        protected void onPreExecute(){
-            return;
-        }
-
-        @Override
-        protected Void doInBackground(String... params) {
-            try {
-                GMailSender sender = new GMailSender("securealert@gmail.com", "Alongpassword101");
-                sender.sendMail("Secure Alert Disconnected",
-                        "This email is being sent to alert you that your bluetooth connection has disconnected.",
-                        "securealert@gmail.com",
-                        "chu.300@osu.edu");
-            } catch (Exception e) {
-                Log.e("SendMail", e.getMessage(), e);
-            }
-            return null;
-        }
-
-
-
-        protected Void onProgressUpdate(){
-            return null;
-        }
-
-        protected Void onPostExecute(){
-            return null;
-        }
-
     }
 }

@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v7.app.ActionBarActivity;
@@ -27,6 +28,7 @@ import android.widget.ListView;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.UUID;
+
 
 public class SplashActivity extends ActionBarActivity {
 
@@ -145,7 +147,10 @@ public class SplashActivity extends ActionBarActivity {
             } else if (action.equals(BTDisconnectService.DISCONNECT)){
                 connected = false;
                 connectButton.setEnabled(true);
+                new sendEmail().execute();
+
             }
+
         }
     };
 
@@ -193,6 +198,8 @@ public class SplashActivity extends ActionBarActivity {
 
         registerReceiver(receiver, filter); // Don't forget to unregister during onDestroy
         recRegTypeDevice = true;
+
+
 
     }
 
@@ -290,6 +297,36 @@ public class SplashActivity extends ActionBarActivity {
                 mmSocket.close();
             } catch (IOException e) { }
         }
+    }
+
+    private class sendEmail extends AsyncTask<String, Void, Void> {
+
+        protected void onPreExecute(){
+            return;
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+            try {
+                GMailSender sender = new GMailSender("tomazio21@gmail.com", "mickey21");
+                sender.sendMail("Secure Alert Disconnected",
+                        "This email is being sent to alert you that your bluetooth connection has disconnected.",
+                        "tomazio21@gmail.com",
+                        "chu.300@osu.edu");
+            } catch (Exception e) {
+                Log.e("SendMail", e.getMessage(), e);
+            }
+            return null;
+        }
+
+        protected Void onProgressUpdate(){
+            return null;
+        }
+
+        protected Void onPostExecute(){
+            return null;
+        }
+
     }
 
 }
